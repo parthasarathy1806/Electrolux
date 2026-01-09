@@ -1,0 +1,5 @@
+.projects-page-grid 
+  .MuiDataGrid-columnHeaders > div {
+    height: auto !important;
+    padding: 10px !important;
+}

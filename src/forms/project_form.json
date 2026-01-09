@@ -1,0 +1,371 @@
+{
+  "formId": "project_form",
+  "title": "Add or Edit Project",
+  "entityType": "project",
+  "dataModel": {
+    "collection": "project",
+    "sections": [
+      {
+        "title": "Metadata",
+        "groups": [
+          {
+            "title": "Organizational Fields",
+            "layout": "two-column",
+            "fields": [
+              {
+                "name": "functionGroup",
+                "label": "Function Group",
+                "type": "dropdown",
+                "options": "functionalGroup",
+                "displayField": "functionalGroupName",
+                "required": true
+              },
+              {
+                "name": "location",
+                "label": "Location",
+                "type": "dropdown",
+                "options": "locations",
+                "displayField": "locationName",
+                "required": true
+              },
+              {
+                "name": "operationsGroup",
+                "label": "Operations Group",
+                "type": "dropdown",
+                "options": "opsgroup",
+                "displayField": "opsGroupName",
+                "required": true
+              },
+              {
+                "name": "operationsSubGroup",
+                "label": "Operations Sub Group",
+                "type": "dropdown",
+                "options": "opssubgroup",
+                "displayField": "opsSubGroupName"
+              },
+              {
+                "name": "operationsMode",
+                "label": "Operations Mode",
+                "type": "dropdown",
+                "options": "opsMode",
+                "displayField": "opsModeName",
+                "required": true
+              },
+              {
+                "name": "operationsSubMode",
+                "label": "Operations Sub Mode",
+                "type": "dropdown",
+                "options": "opsSubMode",
+                "displayField": "opsSubModeName"
+              },
+              {
+                "name": "plCostType",
+                "label": "P&L Cost Type",
+                "type": "dropdown",
+                "options": "costType",
+                "displayField": "name"
+              },
+              {
+                "name": "financialCategory",
+                "label": "Financial Category",
+                "type": "dropdown",
+                "options": "finCategory",
+                "displayField": "name"
+              }
+            ]
+          },
+{
+  "title": "Purchasing Specific Fields",
+  "layout": "two-column",
+  "visibleIfLabel_contains": {
+    "functionGroup": "purchasing"
+  },
+  "fields": [
+    {
+      "name": "costOutEngineer",
+      "label": "Cost Out Engineer",
+      "type": "dropdown",
+      "options": "usersClean",
+      "displayField": "firstName",
+      "required": true
+    },
+    {
+      "name": "purchasingAgent",
+      "label": "Purchasing Agent",
+      "type": "dropdown",
+      "options": "usersClean",
+      "displayField": "firstName",
+      "required": true
+    },
+    {
+      "name": "supplierType",
+      "label": "Supplier Type",
+      "type": "radio",
+      "options": ["PMS", "Non PMS"],
+      "required": true
+    },
+    {
+      "name": "supplier",
+      "label": "Supplier",
+      "type": "dropdown",
+      "options": "supplier",
+      "displayField": "supplierName",
+      "visibleIf": {
+        "supplierType": "PMS"
+      },
+      "required": true
+    },
+    {
+      "name": "supplierNonPms",
+      "label": "Supplier (Non PMS)",
+      "type": "dropdown",
+      "options": "supplier_PUR",
+      "displayField": "supplierName",
+      "visibleIf": {
+        "supplierType": "Non PMS"
+      },
+      "required": true
+    },
+    {
+      "name": "tier2Supplier",
+      "label": "Tier 2 Supplier",
+      "type": "dropdown",
+      "options": "supplierTier2",
+      "displayField": "supplierName"
+    },
+    {
+      "name": "subcommodity",
+      "label": "Subcommodity",
+      "type": "dropdown",
+      "options": "subcommodity",
+      "displayField": "subcommodityName"
+    },
+    {
+      "name": "idco",
+      "label": "IDCO",
+      "type": "dropdown",
+      "options": "idco",
+      "displayField": "idcoTableName"
+    }
+  ]
+},
+          {
+            "title": "Project Identification",
+            "layout": "two-column",
+            "fields": [
+              {
+                "name": "activityType",
+                "label": "Activity Type",
+                "type": "dropdown",
+                "options": "activityType",
+                "displayField": "name",
+                "required": true
+              },
+              {
+                "name": "activitySubType",
+                "label": "Activity Sub Type",
+                "type": "dropdown",
+                "options": "activitySubType",
+                "displayField": "name"
+              },
+              {
+                "name": "productLine",
+                "label": "Product Line",
+                "type": "dropdown",
+                "options": "productProductLine",
+                "displayField": "name",
+                "required": true
+              },
+              {
+                "name": "country",
+                "label": "Country",
+                "type": "text"
+              },
+              {
+                "name": "projectId",
+                "label": "Project ID",
+                "type": "text",
+                "autoGenerate": true,
+                "editable": true
+              }
+            ]
+          },
+
+          {
+            "title": "Project Timeline",
+            "layout": "two-column",
+            "fields": [
+              {
+                "name": "startDate",
+                "label": "Start Date",
+                "type": "datePicker",
+                "required": true
+              },
+              {
+                "name": "description",
+                "label": "Description",
+                "type": "textarea",
+                "required": true
+              },
+              {
+                "name": "pprfSwingNumber",
+                "label": "PPRF Swing Number",
+                "type": "text"
+              },
+              {
+                "name": "ecn",
+                "label": "ECN",
+                "type": "text"
+              }
+            ]
+          },
+
+          {
+            "title": "Other",
+            "layout": "two-column",
+            "fields": [
+              {
+                "name": "risk",
+                "label": "Risk",
+                "type": "dropdown",
+                "options": "projectStatus",
+                "displayFields": ["projectStatusName", "projectStatusValue"],
+                "required": true
+              },
+              {
+                "name": "status",
+                "label": "Status",
+                "type": "dropdown",
+                "options": ["Active", "On Hold", "Closed"],
+                "required": true
+              },
+              {
+                "name": "comment",
+                "label": "Comment",
+                "type": "textarea"
+              },
+              {
+                "name": "bigRocks",
+                "label": "Big Rocks",
+                "type": "dropdown",
+                "options": "bhag",
+                "displayField": "bhagTableName"
+              }
+            ]
+          },
+
+          {
+            "title": "Who is Involved?",
+            "layout": "two-column",
+            "fields": [
+              {
+                "name": "projectOwner",
+                "label": "Project Owner",
+                "type": "dropdown",
+                "options": "usersClean",
+                "displayField": "firstName"
+              }
+            ]
+          },
+
+          {
+            "title": "What is Involved?",
+            "layout": "two-column",
+            "fields": [
+              {
+                "name": "conversionMode",
+                "label": "Conversion Mode",
+                "type": "dropdown",
+                "options": "conversionOpsMode",
+                "displayField": "conversionOpsModeName",
+                "required": true
+              }
+            ]
+          },
+
+          {
+            "title": "Project Master Legacy Fields",
+            "layout": "two-column",
+            "fields": [
+              {
+                "name": "brand",
+                "label": "Brand",
+                "type": "dropdown",
+                "options": "brand",
+                "displayField": "brandName"
+              }
+            ]
+          },
+          {
+            "fields": [
+              {
+                "name": "inPlan",
+                "label": "In Plan?",
+                "type": "radio",
+                "options": ["Yes", "No"],
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+
+      { "title": "Financial", "groups": [] },
+
+      {
+        "title": "Documents",
+        "groups": [
+          {
+            "title": "Documents",
+            "renderer": "documents",
+            "groups": [
+              {
+                "title": "Project Documents",
+                "layout": "one-column",
+                "renderer": "documents",
+                "config": {
+                  "documentTypes": ["CHARTER", "NONE"],
+                  "fileNameRegex": "[<>'+\\/;`%&@#:?!$=*,]",
+                  "columns": [
+                    { "field": "fileName", "label": "Filename" },
+                    { "field": "uploadedBy", "label": "Upload By" },
+                    { "field": "documentType", "label": "Document Type" }
+                  ],
+                  "helpText": "File name should not contains following characters ([<>'+\\/;`%&@#:?!$=*,])"
+                }
+              }
+            ]
+          }
+        ]
+      },
+
+      {
+        "title": "Review",
+        "renderer": "review",
+        "groups": [
+          {
+            "title": "Project Summary",
+            "fields": [
+              {
+                "type": "sentence",
+                "template": "This project is a <strong>{{operationsGroup}}</strong> <strong>{{operationsMode}}</strong> with risk level <strong>{{risk}}</strong>."
+              },
+              {
+                "type": "sentence",
+                "template": "It is scheduled to start on <strong>{{startDate}}</strong> and is currently <strong>{{status}}</strong>."
+              },
+              {
+                "type": "sentence",
+                "template": "<strong>{{projectOwner}}</strong> owns the project."
+              },
+              {
+                "type": "sentence",
+                "template": "It is projected to save <strong>{{annualizedTotal}}</strong> in total{{yearlyBreakdown}}."
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

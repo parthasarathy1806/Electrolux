@@ -1,0 +1,146 @@
+{
+  "formId": "subcommodity_form",
+  "title": "Add or Edit Subcommodity",
+  "description": "Form for managing Subcommodity records along with their linked Commodity relationship.",
+  "entityType": "subcommodity",
+  "dataModel": {
+    "collection": "subcommodity",
+    "relationship": {
+      "type": "ForeignKey",
+      "fromField": "commodityName",
+      "toEntity": "commodity",
+      "toField": "_id",
+      "relationshipName": "commodity_ref"
+    }
+  },
+  "fields": [
+    {
+      "name": "subcommodityName",
+      "label": "Subcommodity Name",
+      "type": "text",
+      "required": true,
+      "placeholder": "Enter subcommodity name (e.g., Dishwasher Filter)"
+    },
+    {
+      "name": "commoditySection",
+      "label": "Commodity Information",
+      "type": "section",
+      "description": "Select an existing commodity or create a new one below.",
+      "fields": [
+        {
+          "name": "commodityRefType",
+          "label": "Commodity Relationship Mode",
+          "type": "radio",
+          "required": true,
+          "options": [
+            { "label": "Select Existing Commodity", "value": "existing" },
+            { "label": "Create New Commodity", "value": "new" }
+          ],
+          "defaultValue": "existing"
+        },
+        {
+          "name": "commodityName",
+          "label": "Linked Commodity",
+          "type": "lookup",
+          "visibleIf": { "commodityRefType": "existing" },
+          "lookup": {
+            "type": "graphql",
+            "endpoint": "http://localhost:4000/graphql",
+            "query": "query GetCommodities { commodities { _id name } }",
+            "valueField": "_id",
+            "labelField": "name"
+          },
+          "required": true,
+          "placeholder": "Select a commodity from list"
+        },
+        {
+          "name": "newCommodityGroup",
+          "type": "group",
+          "visibleIf": { "commodityRefType": "new" },
+          "fields": [
+            {
+              "name": "commodityNameNew",
+              "label": "Commodity Name",
+              "type": "text",
+              "required": true,
+              "placeholder": "Enter new commodity name"
+            },
+            {
+              "name": "status",
+              "label": "Commodity Status",
+              "type": "select",
+              "enum": ["ACTIVE", "INACTIVE"],
+              "defaultValue": "ACTIVE"
+            },
+            {
+              "name": "commodityCreatedBy",
+              "label": "Created By",
+              "type": "text",
+              "placeholder": "User ID or name"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "opsGroupNameRef",
+      "label": "Ops Group Reference",
+      "type": "text",
+      "placeholder": "Enter Ops Group Reference"
+    },
+    {
+      "name": "subcommodityStatus",
+      "label": "Subcommodity Status",
+      "type": "select",
+      "enum": ["ACTIVE", "INACTIVE"],
+      "defaultValue": "ACTIVE"
+    },
+    {
+      "name": "commodityManager",
+      "label": "Commodity Manager",
+      "type": "text",
+      "placeholder": "Manager name or ID"
+    },
+    {
+      "name": "IDCO",
+      "label": "IDCO",
+      "type": "text",
+      "placeholder": "Enter IDCO value"
+    },
+    {
+      "name": "CreatedBy",
+      "label": "Created By",
+      "type": "text",
+      "placeholder": "Enter creator user ID"
+    },
+    {
+      "name": "CreatedByName",
+      "label": "Created By Name",
+      "type": "text",
+      "placeholder": "Enter creator name"
+    },
+    {
+      "name": "subCommodityModifiedBy",
+      "label": "Modified By",
+      "placeholder": "Enter modifier user ID"
+    }
+  ],
+  "ui": {
+    "layout": "two-column",
+    "theme": "light",
+    "submitButtonLabel": "Save Subcommodity",
+    "cancelButtonLabel": "Cancel",
+    "successMessage": "Subcommodity and Commodity data saved successfully!"
+  },
+  "apiConfig": {
+  "type": "graphql",
+  "endpoint": "http://localhost:4000/graphql",
+  "mutation": "mutation CreateSubcommodity($input: SubcommodityInput!) { createSubcommodity(input: $input) { _id subcommodityName } }",
+  "variablesMap": {
+    "input": "formData"
+  },
+  "payloadTransform": {
+    "onSubmit": "if (formData.commodityRefType === 'new') { createCommodity(formData.newCommodityGroup) → return its _id to set formData.commodityName }"
+  }
+}
+}

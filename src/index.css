@@ -11,3 +11,20 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+/* Right align all numeric DataGrid cells */
+.MuiDataGrid-cell--numeric {
+  text-align: right !important;
+}
+
+/* Right align column header for numeric */
+.MuiDataGrid-columnHeader--numeric .MuiDataGrid-columnHeaderTitle {
+  text-align: right !important;
+  width: 100%;
+}
+div#superset-container-a6bf66b1-8d5a-4782-97a3-96bec784dbcd>iframe{
+  width:95% !important;
+  height:670px !important;
+}
+.i-frame> iframe> main{
+  padding:10px !important;
+}
