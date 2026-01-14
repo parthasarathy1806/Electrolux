@@ -31,6 +31,7 @@ const API = process.env.REACT_APP_API_BASE;
 const ProjectFinancialView = ({ financial, metadata, onFinancialChange, onTotalsChange, onPlatformLookups,mode = "details" }) => {
   const startDate = metadata?.startDate;
   const functionalGroup = metadata?.functionGroup;
+  const isLegacy = metadata?.source === "legacy";
 
   /* ---------------- STATE ---------------- */
   const [platforms, setPlatforms] = useState([]);
@@ -43,8 +44,36 @@ const ProjectFinancialView = ({ financial, metadata, onFinancialChange, onTotals
   /* ---------------- INIT ---------------- */
   useEffect(() => {
     setPlatforms(financial?.platforms || []);
-    setFixedCost(financial?.fixedCostSavings || []);
-  }, [financial]);
+
+    if (!financial?.fixedCostSavings || !startDate) {
+      setFixedCost([]);
+      return;
+    }
+
+    // ✅ LEGACY: limit months to startDate + 12 months
+    if (isLegacy) {
+      const allMonths = generateMonths(startDate);
+      const startMonth = dayjs(startDate).startOf("month");
+
+      const allowedMonths = allMonths
+        .filter(m => m.isSame(startMonth) || m.isAfter(startMonth))
+        .slice(0, 13);
+
+      const allowedKeys = new Set(
+        allowedMonths.map(m => m.format("YYYY-MM"))
+      );
+
+      const filtered = financial.fixedCostSavings.filter(f =>
+        allowedKeys.has(dayjs(f.month).format("YYYY-MM"))
+      );
+
+      setFixedCost(filtered);
+    } else {
+    // 🟢 NEW PROJECTS – untouched
+      setFixedCost(financial.fixedCostSavings);
+    }
+  }, [financial, startDate]);
+
 
   /* ---------------- LOAD PLATFORM OPTIONS ---------------- */
   useEffect(() => {
@@ -230,24 +259,44 @@ const ProjectFinancialView = ({ financial, metadata, onFinancialChange, onTotals
       let pVolume = 0;
       const monthlySavings = {};
 
-      months.forEach((m) => {
-        const ym = m.format("YYYY-MM");
+      // ✅ LEGACY PLATFORM HANDLING
+      if (isLegacy && !p.platform_ref_id) {
+        const months = generateMonths(startDate).slice(0, 13);
+        const monthlyVolume = p.total_volume / months.length;
 
-        const units = prorateUnits(
-          p.total_volume / months.length,
-          m,
-          startDate
-        );
+        months.forEach((m) => {
+          const ym = m.format("YYYY-MM");
+          const savings = calculateMonthlySavings(
+            monthlyVolume,
+            p.unit_cost
+          );
 
-        const savings = calculateMonthlySavings(units, p.unit_cost);
+          monthlySavings[ym] = savings;
+          pAnnualized += savings;
+          pVolume += monthlyVolume;
 
-        monthlySavings[ym] = savings;
-        pAnnualized += savings;
-        pVolume += units;
+          yearlyMap[ym] = (yearlyMap[ym] || 0) + savings;
+        });
+      } else {
+        // 🟢 EXISTING LOGIC (new projects)
+        months.forEach((m) => {
+          const ym = m.format("YYYY-MM");
 
-        yearlyMap[ym] = (yearlyMap[ym] || 0) + savings;
-      });
+          const units = prorateUnits(
+            p.total_volume / months.length,
+            m,
+            startDate
+          );
 
+          const savings = calculateMonthlySavings(units, p.unit_cost);
+
+          monthlySavings[ym] = savings;
+          pAnnualized += savings;
+      pVolume += units;
+
+          yearlyMap[ym] = (yearlyMap[ym] || 0) + savings;
+        });
+      }
       totalVolume += pVolume;
       annualized += pAnnualized;
 
@@ -258,6 +307,7 @@ const ProjectFinancialView = ({ financial, metadata, onFinancialChange, onTotals
         computedVolume: pVolume,
       };
     });
+
 
     return {
       platforms: enrichedPlatforms,
@@ -316,6 +366,7 @@ const ProjectFinancialView = ({ financial, metadata, onFinancialChange, onTotals
               <InputLabel>Platform</InputLabel>
               <Select
                 value={p.platform_ref_id || ""}
+                disabled={false}
                 label="Platform"
                 onChange={(e) =>
                   updatePlatform(p, { platform_ref_id: e.target.value })
@@ -327,6 +378,7 @@ const ProjectFinancialView = ({ financial, metadata, onFinancialChange, onTotals
                   </MenuItem>
                 ))}
               </Select>
+
             </FormControl>
 
             <TextField

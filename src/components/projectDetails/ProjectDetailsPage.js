@@ -10,6 +10,7 @@ import ProjectFinancialView from "./ProjectFinancialView";
 import ReviewChangesTab from "../reviewchanges/ReviewChangesTab";
 import { computeChanges } from "../../utils/changeDiff";
 import { hasRelevantChanges } from "../../utils/hasChanges";
+import ChangeRequestsTab from "./ChangeRequestsTab";
 
 
 // 🔑 REUSE CREATE PAGE DOCUMENTS UI
@@ -66,8 +67,9 @@ const ProjectDetailsPage = () => {
   /* 🔑 SAME STATE SHAPE AS CREATE PAGE */
   const [formData, setFormData] = useState({});
   const [dropdownData, setDropdownData] = useState({});
+  const [labelMap, setLabelMap] = useState({});
 
-    // ✅ ADD THESE HERE
+  // ✅ ADD THESE HERE
   const [baselineData, setBaselineData] = useState(null);
   const [showReviewChanges, setShowReviewChanges] = useState(false);
   // ADD THIS (one line)
@@ -90,25 +92,80 @@ const ProjectDetailsPage = () => {
 
         const data = res.data;
 
+        const FIELD_ALIAS_MAP = {
+          subCommodity: "subcommodity",
+          costType: "plCostType",
+          supplier: "supplierName",
+        };
         /* normalize metadata ObjectId → string */
         const normalizedMetadata = {};
         Object.entries(data.metadata || {}).forEach(([k, v]) => {
+          const uiKey = FIELD_ALIAS_MAP[k] || k;
           normalizedMetadata[k] = v != null ? String(v) : v;
+          normalizedMetadata[uiKey] = v != null ? String(v) : v;
         });
 
-        setProject(data);
+        const inferSupplierType = (meta) => {
+          if (meta.supplierName) return "PMS";
+          if (meta.supplierNonPms) return "Non PMS";
+          return "";
+        };
 
-        setFormData(prev => ({
-          ...prev,
-          ...normalizedMetadata,
+        normalizedMetadata.supplierType =
+        normalizedMetadata.supplierType ||
+        inferSupplierType(normalizedMetadata);
+        
+        const normalizeLegacyFinancialForUI = (financial) => {
+          if (!financial) return financial;
+        const legacyPlatforms =
+          financial.platforms?.length
+          ? financial.platforms
+          : [{
+            _id: "legacy-0",
+            platform_ref_id: "",
+            platformName: "Legacy Platform",
+            unit_cost: financial?.platforms?.[0]?.unit_cost || 1,
+            total_volume: financial?.platforms?.[0]?.total_volume || 0,
+            annualized_savings: financial?.platforms?.[0]?.annualized_savings || 0,
+          }];
+          return {
+            ...financial,
+            platforms: legacyPlatforms.map(p => ({
+              _id: p._id,
+              platform_ref_id: p.platform_ref_id || "",
+              platformName: p.platformName, // 👈 allow selection
+              unit_cost: p.unit_cost || 0,
+              total_volume: p.total_volume || 0,
+              annualized_savings: p.annualized_savings || 0,
+            })),
+          };
+        };
 
-          // 🔑 hydrate only once
-          documents: prev.documents?.length
-          ? prev.documents
-          : mapDbDocumentsToUi(data.documents || []),
+        setProject({
+          ...data,
+          financial: normalizeLegacyFinancialForUI(data.financial),
+        });
 
-          documentsDraft: prev.documentsDraft || {},
-        }));
+        const metadataWithLabels = { ...normalizedMetadata };
+
+// 🔑 ADD DISPLAY LABEL FIELDS FOR SCHEMA CONDITIONS
+Object.entries(normalizedMetadata).forEach(([k, v]) => {
+  if (labelMap[v]) {
+    metadataWithLabels[`${k}__label`] = labelMap[v];
+  }
+});
+
+setFormData(prev => ({
+  ...prev,
+  ...metadataWithLabels,
+
+  documents: prev.documents?.length
+    ? prev.documents
+    : mapDbDocumentsToUi(data.documents || []),
+
+  documentsDraft: prev.documentsDraft || {},
+}));
+
       } catch (e) {
           console.error("Failed to load project", e);
       }
@@ -178,10 +235,28 @@ useEffect(() => {
         );
 
         const payload = res.data.dropdowns || {};
+       const dropdowns = buildDropdownData(
+  projectForm.dataModel.sections,
+  payload
+);
 
-        setDropdownData(
-          buildDropdownData(projectForm.dataModel.sections, payload)
-        );
+setDropdownData(dropdowns);
+
+// 🔑 BUILD LABEL MAP (ADD THIS)
+const labels = {};
+Object.values(dropdowns).forEach(list => {
+  (list || []).forEach(opt => {
+    if (opt._id) {
+      labels[String(opt._id)] =
+        opt.name ||
+        opt.label ||
+        opt[Object.keys(opt).find(k => k.endsWith("Name"))];
+    }
+  });
+});
+
+setLabelMap(labels);
+
       } catch (e) {
         console.error("Failed to load lookups", e);
       } finally {
@@ -191,6 +266,22 @@ useEffect(() => {
 
     loadLookups();
   }, []);
+
+
+  useEffect(() => {
+  if (!labelMap || !Object.keys(labelMap).length) return;
+
+  setFormData(prev => {
+    const updated = { ...prev };
+    Object.entries(prev).forEach(([k, v]) => {
+      if (labelMap[v]) {
+        updated[`${k}__label`] = labelMap[v];
+      }
+    });
+    return updated;
+  });
+}, [labelMap]);
+
 
   if (loading || !project) return null;
 
@@ -237,6 +328,54 @@ useEffect(() => {
   : [];
   const canReviewChanges = changes.length > 0;
 
+  const submitChangeRequest = async ({
+  reason,
+  comment,
+  changes,
+  totals,
+}) => {
+  try {
+    const payload = {
+      projectId: project.metadata.projectId,
+      projectDesc: formData.description,
+      functionGroup: formData.functionGroup,
+      reasonCode: reason,
+      commentCode: comment,
+
+      impact: {
+        anuunalImpact: totals.annualized || 0,
+        year1Impact:
+          totals.yearly?.[new Date().getFullYear()] || 0,
+        year2Impact:
+          totals.yearly?.[new Date().getFullYear() + 1] || 0,
+      },
+
+      fields: changes.map((c) => ({
+        fieldname: c.field,
+        originalValue: c.oldValue,
+        requestedvalue: c.newValue,
+        anuunalImpact: totals.annualized || 0,
+        year1Impact:
+          totals.yearly?.[new Date().getFullYear()] || 0,
+        year2Impact:
+          totals.yearly?.[new Date().getFullYear() + 1] || 0,
+      })),
+    };
+
+    await axios.post(
+      `${API}/api/projects/change-requests`,
+      payload
+    );
+
+    setShowReviewChanges(false);
+    setActiveTab(3); // Change Requests tab
+  } catch (err) {
+    console.error("Failed to submit change request", err);
+    alert("Failed to submit change request");
+  }
+};
+
+
   return (
     <Paper sx={{ p: 2 }}>
       {/* 🔷 PROJECT HEADER (VISIBLE ACROSS ALL TABS) */}
@@ -269,9 +408,14 @@ useEffect(() => {
           setActiveTab(v); // Financial tab index
         }}
       >
-        {sections.map((s, i) => (
-          <Tab key={i} label={s.title} />
-        ))}
+        {sections
+  .filter(s => s.title !== "Review")
+  .map((s, i) => (
+    <Tab key={i} label={s.title} />
+  ))}
+          
+        {/* Change Request tab*/}
+        <Tab label="Change Requests" />
       </Tabs>
 
       <Box mt={3}>
@@ -284,6 +428,7 @@ useEffect(() => {
               setShowReviewChanges(false);
               setActiveTab(1); // ⬅ back to Financial tab
             }}
+            onSubmit={submitChangeRequest}
           />
         ) : (
       <>
@@ -303,7 +448,7 @@ useEffect(() => {
           <>
             <ProjectFinancialView
               financial={financialDraft}
-              metadata={project.metadata}
+              metadata={formData}
               onFinancialChange={setFinancialDraft}
               onTotalsChange={setReviewTotals}
               onPlatformLookups={setPlatformLookups}
@@ -330,6 +475,12 @@ useEffect(() => {
         <ProjectDocumentsTab
           formData={formData}
           setFormData={setFormData}
+        />
+      )}
+      {/* CHANGE REQUESTS */}
+      {activeTab === 3 && (
+        <ChangeRequestsTab
+          projectId={project?.metadata?.projectId}
         />
       )}
     </>

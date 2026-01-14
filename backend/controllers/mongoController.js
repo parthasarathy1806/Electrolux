@@ -2,6 +2,10 @@
 import { GridFSBucket, MongoClient, ObjectId } from "mongodb";
 import dotenv from "dotenv";
 import { mapReferenceFields, collectionLookupMappings } from "../common/mongoMapperCore.js";
+import {
+  normalizeLegacyProject,
+  normalizeLegacyFinancial,
+} from "../common/legacyProjectNormalizer.js";
 dotenv.config({ path: "../.env" });
 
 const client = new MongoClient(process.env.MONGO_URI);
@@ -415,19 +419,19 @@ export const getProjectDetails = async (req, res) => {
       }
     }
 
-    /* ============================
-       2️⃣ LEGACY PROJECT
-    ============================ */
-    let legacy = null;
+ /* ============================
+   2️⃣ LEGACY PROJECT (FIXED)
+============================ */
+let legacy = null;
 
-// 1️⃣ Try by _id (MOST IMPORTANT)
+// 1️⃣ Try legacy by _id
 if (ObjectId.isValid(id)) {
   legacy = await db
     .collection("projectCreate")
     .findOne({ _id: new ObjectId(id) });
 }
 
-// 2️⃣ Fallback by ProjectID (string)
+// 2️⃣ Fallback by ProjectID
 if (!legacy) {
   legacy = await db
     .collection("projectCreate")
@@ -438,44 +442,25 @@ if (!legacy) {
   return res.status(404).json({ message: "Project not found" });
 }
 
-    return res.json({
-      metadata: {
-        projectId: legacy.ProjectID,
-        projectNumber: legacy.projectNumber,
-        description: legacy.Project_Description,
-        startDate: legacy.Start_Date,
-        functionGroup: legacy.functionGroup,
-        projectOwner: legacy.projectOwner,
-        purchasingAgent: legacy.purchasingAgent,
-        brand: legacy.brand,
-        risk: legacy.riskStatus,
-        status: legacy.Status,
-        conversionMode: legacy.conversionOpsMode,
-        operationsSubMode: legacy.conversionOpsSubMode,
-        inPlan: legacy.InPlan === "Y" ? "Yes" : "No",
-      },
-      financial: {
-        platforms: (legacy.platforms || []).map((p, idx) => ({
-          _id: `legacy-${idx}`,
-          platform_ref_id: p.name,
-          unit_cost: p.cost || 0,
-          total_volume: 0,
-          annualized_savings:
-            legacy.Estimated_Annualized_Savings || 0,
-        })),
-        fixedCostSavings: (legacy.Repallmothval || []).map((m) => ({
-          month: m.dateval,
-          savings: m.savings,
-        })),
-      },
-      documents: [],
-      source: "legacy",
-    });
+// ✅ Normalize to NEW schema
+const metadata = normalizeLegacyProject(legacy);
+const financial = normalizeLegacyFinancial(legacy);
+
+return res.json({
+  metadata,
+  financial,
+  documents: [],
+  source: "legacy",
+});
+
+
   } catch (err) {
-    console.error("Project details error:", err);
-    res.status(500).json({ message: "Failed to load project details" });
+    console.error("❌ getProjectDetails error:", err);
+    res.status(500).json({ error: err.message });
   }
 };
+
+
 
 
 

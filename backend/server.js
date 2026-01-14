@@ -10,6 +10,7 @@ import { graphqlMiddleware } from "./graphql/index.js";
 // import resolvers from "./graphql/resolvers.js"; // ✅ import resolvers
 import financialRoutes from "./routes/financialRoutes.js";
 import projectRoutes from "./routes/projectRoutes.js";
+import projectChangeRequestsRoutes from "./routes/projectChangeRequests.js";
 
 dotenv.config({ path: "../.env" });
 
@@ -41,6 +42,8 @@ app.use("/api/financial", financialRoutes);
 // Project routes
 app.use("/api/projects", projectRoutes);
 
+// Project Change Requests routes
+app.use("/api/projects", projectChangeRequestsRoutes);
 
 // Server listen
 const PORT = process.env.PORT || 5000;

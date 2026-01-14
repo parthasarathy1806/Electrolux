@@ -13,6 +13,16 @@ import {
 } from "@mui/material";
 import CustomDatePicker from "../CustomDatePicker";
 
+
+const getOptionValue = (opt) =>
+  String(
+    opt._id ??
+    opt.id ??
+    opt.value ??
+    opt.projectStatusValue ??
+    ""
+  );
+
 /* ✅ Editable fields */
 const EDITABLE_METADATA_FIELDS = new Set([
   "activityType",
@@ -67,7 +77,9 @@ const ProjectMetadataView = ({
   };
 
   const renderField = (field) => {
-    const value = formData[field.name] ?? "";
+    const value = formData[field.name] != null
+      ? String(formData[field.name])
+      : "";
     const editable = isEditable(field.name);
 
     /* TEXT / TEXTAREA */
@@ -98,7 +110,7 @@ const ProjectMetadataView = ({
           <InputLabel>{field.label}</InputLabel>
           <Select
             label={field.label}
-            value={String(value)}
+            value={value ?? ""}
             onChange={(e) => handleChange(field.name, e.target.value)}
           >
             {options.map((opt) => {
@@ -120,7 +132,7 @@ const ProjectMetadataView = ({
               }
 
               return (
-                <MenuItem key={opt._id} value={opt._id}>
+                <MenuItem key={getOptionValue(opt)} value={getOptionValue(opt)}>
                   {optionLabel}
                 </MenuItem>
               );
