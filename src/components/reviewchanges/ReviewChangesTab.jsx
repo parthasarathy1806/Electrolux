@@ -1,4 +1,5 @@
 import React from "react";
+import axios from "axios";
 import {
   Box,
   Typography,
@@ -25,13 +26,53 @@ const REASONS = [
   "Revised Savings",
 ];
 
+
+
 // 🔑 convert camelCase → Label
 const formatLabel = (key) =>
   key
     .replace(/([A-Z])/g, " $1")
     .replace(/^./, (s) => s.toUpperCase());
 
-const ReviewChangesTab = ({ formData, changes, totals, onBack }) => {
+const ReviewChangesTab = ({ formData, changes, totals, onBack, onSubmit, }) => {
+  
+const [reason, setReason] = React.useState("");
+const [comment, setComment] = React.useState("");
+const [submitting, setSubmitting] = React.useState(false);
+const handleSubmit = async () => {
+  if (!reason) {
+    alert("Please select a reason before submitting.");
+    return;
+  }
+
+  try {
+    setSubmitting(true);
+
+    await axios.post(
+      `${process.env.REACT_APP_API_BASE}/api/projects/change-requests`,
+      {
+        projectId: formData.projectId,
+        projectDesc: formData.description,
+        reasonCode: reason,
+        commentCode: comment,
+        totals,
+        changes,
+      }
+    );
+
+    alert("Change request submitted successfully.");
+
+    // ✅ Go back to Project Details page
+    window.history.back();
+
+  } catch (err) {
+    console.error("Submit failed:", err);
+    alert("Failed to submit change request. Please try again.");
+  } finally {
+    setSubmitting(false);
+  }
+};
+
   return (
     <Box p={2}>
       {/* Back button */}
@@ -62,7 +103,7 @@ const ReviewChangesTab = ({ formData, changes, totals, onBack }) => {
             <strong>Entered:</strong> {dayjs().format("DD/MM/YYYY")}
           </Typography>
           <Typography>
-            <strong>Next Status:</strong> APPROVED
+            <strong>Next Status:</strong> Submitted
           </Typography>
         </Box>
 
@@ -125,6 +166,8 @@ const ReviewChangesTab = ({ formData, changes, totals, onBack }) => {
               label="Reason"
               fullWidth
               margin="dense"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
             >
               {REASONS.map((r) => (
                 <MenuItem key={r} value={r}>
@@ -139,6 +182,9 @@ const ReviewChangesTab = ({ formData, changes, totals, onBack }) => {
               minRows={3}
               fullWidth
               margin="dense"
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+
             />
           </Box>
 
@@ -161,8 +207,13 @@ const ReviewChangesTab = ({ formData, changes, totals, onBack }) => {
 
           {/* Accept */}
           <Box textAlign="right">
-            <Button variant="contained" color="success">
-              Accept
+            <Button variant="contained" 
+              color="success" 
+              disabled={submitting}
+              onClick={handleSubmit}
+
+            >
+              {submitting ? "Submitting..." : "Submit"}
             </Button>
           </Box>
         </Box>

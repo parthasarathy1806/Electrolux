@@ -6,6 +6,10 @@ export function computeChanges(baseline, current, valueResolver) {
   const FINANCIAL_DIFF_FIELDS = {
     PLATFORM_UNIT_COST: "unit_cost",
   };
+
+  const isLabelField = (key) => key.endsWith("__label");
+
+
   const IGNORED_METADATA_FIELDS = new Set([
     "_lookupCache",
     "financial",
@@ -16,14 +20,17 @@ export function computeChanges(baseline, current, valueResolver) {
     "createdBy",
     "modifiedOn",
     "modifiedBy",
+    "supplierName",
   ]);
 
 
 
   /* ---------- METADATA ---------- */
   Object.keys(current.metadata || {}).forEach((key) => {
+  if (IGNORED_METADATA_FIELDS.has(key)) return;
 
-    if (IGNORED_METADATA_FIELDS.has(key)) return;
+  // 🔥 CRITICAL: ignore UI label helpers
+  if (isLabelField(key)) return;
 
     const DERIVED_FIELDS = new Set([
       "Estimated_Annualized_Savings",
@@ -38,14 +45,17 @@ export function computeChanges(baseline, current, valueResolver) {
     const oldVal = baseline.metadata?.[key];
     const newVal = current.metadata?.[key];
 
-    if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
+    const isSameRaw =
+      String(oldVal ?? "") === String(newVal ?? "");
+
+      if (isSameRaw) return;
+
       changes.push({
         section: "Metadata",
         field: key,
         oldValue: valueResolver(key, oldVal),
         newValue: valueResolver(key, newVal),
       });
-    }
   });
 
   // FINANCIAL — USER EDITABLE ONLY
