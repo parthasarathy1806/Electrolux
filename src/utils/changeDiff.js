@@ -3,9 +3,9 @@ export function computeChanges(baseline, current, valueResolver) {
   if (!baseline) return [];
 
   const changes = [];
-  const FINANCIAL_DIFF_FIELDS = {
-    PLATFORM_UNIT_COST: "unit_cost",
-  };
+  // const FINANCIAL_DIFF_FIELDS = {
+  //   PLATFORM_UNIT_COST: "unit_cost",
+  // };
 
   const isLabelField = (key) => key.endsWith("__label");
 
@@ -27,10 +27,10 @@ export function computeChanges(baseline, current, valueResolver) {
 
   /* ---------- METADATA ---------- */
   Object.keys(current.metadata || {}).forEach((key) => {
-  if (IGNORED_METADATA_FIELDS.has(key)) return;
+    if (IGNORED_METADATA_FIELDS.has(key)) return;
 
-  // 🔥 CRITICAL: ignore UI label helpers
-  if (isLabelField(key)) return;
+    // 🔥 CRITICAL: ignore UI label helpers
+    if (isLabelField(key)) return;
 
     const DERIVED_FIELDS = new Set([
       "Estimated_Annualized_Savings",
@@ -48,20 +48,20 @@ export function computeChanges(baseline, current, valueResolver) {
     const isSameRaw =
       String(oldVal ?? "") === String(newVal ?? "");
 
-      if (isSameRaw) return;
+    if (isSameRaw) return;
 
-      changes.push({
-        section: "Metadata",
-        field: key,
-        oldValue: valueResolver(key, oldVal),
-        newValue: valueResolver(key, newVal),
-      });
+    changes.push({
+      section: "Metadata",
+      field: key,
+      oldValue: valueResolver(key, oldVal),
+      newValue: valueResolver(key, newVal),
+    });
   });
 
   // FINANCIAL — USER EDITABLE ONLY
   const oldPlatforms = baseline.financial?.platforms || [];
   const newPlatforms = current.financial?.platforms || [];
-  
+
 
   newPlatforms.forEach((p) => {
     const stringify = (v) =>
@@ -76,15 +76,41 @@ export function computeChanges(baseline, current, valueResolver) {
         oldValue: stringify(oldPlatforms),
         newValue: stringify(newPlatforms),
       });
-  }
-  if (old.unit_cost !== p.unit_cost) {
-    changes.push({
-      section: "Financial",
-      field: "Unit Cost Savings",
-      oldValue: old.unit_cost,
-      newValue: p.unit_cost,
-    });
-  }
+    }
+    if (old.unit_cost !== p.unit_cost) {
+      changes.push({
+        section: "Financial",
+        field: "Unit Cost Savings",
+        oldValue: old.unit_cost,
+        newValue: p.unit_cost,
+      });
+    }
+  });
+
+  /* ---------- FIXED COST SAVINGS ---------- */
+  const oldFixed = baseline.financial?.fixedCostSavings || [];
+  const newFixed = current.financial?.fixedCostSavings || [];
+
+  newFixed.forEach((f) => {
+    const old = oldFixed.find((of) => of._id === f._id);
+    if (!old) return; // New items not tracked as diffs in this simplified logic, or could be added
+
+    // Compare savings
+    // Ensure we handle string/number comparison safely
+    const oldSavings = Number(old.savings || 0);
+    const newSavings = Number(f.savings || 0);
+
+    if (oldSavings !== newSavings) {
+      // Format month for display if available
+      const monthLabel = f.month ? new Date(f.month).toLocaleString('default', { month: 'short', year: 'numeric' }) : "Fixed Cost";
+
+      changes.push({
+        section: "Financial",
+        field: `Fixed Cost (${monthLabel})`,
+        oldValue: oldSavings,
+        newValue: newSavings,
+      });
+    }
   });
 
 

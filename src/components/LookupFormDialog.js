@@ -247,11 +247,24 @@ const LookupFormDialog = ({
 
   const backendOnlyFields = ["createdon", "modifiedon", "createdby", "modifiedby"];
 
-  const fields = Object.entries(schema?.properties || {}).filter(([key]) => {
+  // ✅ FORM ORDER PRIORITY
+const orderedKeys =
+  config?.formOrder?.length > 0
+    ? config.formOrder
+    : includeFields;
+
+// ✅ Build fields strictly in that order
+const fields = orderedKeys
+  .map((key) => {
+    const fieldSchema = schema?.properties?.[key];
+    if (!fieldSchema) return null;
+
     const lowerKey = key.toLowerCase();
-    if (backendOnlyFields.some((f) => lowerKey.includes(f))) return false;
-    return includeFields.length > 0 ? includeFields.includes(key) : true;
-  });
+    if (backendOnlyFields.some((f) => lowerKey.includes(f))) return null;
+
+    return [key, fieldSchema];
+  })
+  .filter(Boolean);
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>

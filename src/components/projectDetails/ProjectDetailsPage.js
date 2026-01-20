@@ -1,6 +1,6 @@
 // src/components/projectDetails/ProjectDetailsPage.js
 import React, { useEffect, useState } from "react";
-import { Box, Tabs, Tab, Paper, Typography, Button} from "@mui/material";
+import { Box, Tabs, Tab, Paper, Typography, Button } from "@mui/material";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 
@@ -9,7 +9,7 @@ import ProjectMetadataView from "./ProjectMetadataView";
 import ProjectFinancialView from "./ProjectFinancialView";
 import ReviewChangesTab from "../reviewchanges/ReviewChangesTab";
 import { computeChanges } from "../../utils/changeDiff";
-import { hasRelevantChanges } from "../../utils/hasChanges";
+
 import ChangeRequestsTab from "./ChangeRequestsTab";
 
 
@@ -73,12 +73,12 @@ const ProjectDetailsPage = () => {
   const [baselineData, setBaselineData] = useState(null);
   const [showReviewChanges, setShowReviewChanges] = useState(false);
   // ADD THIS (one line)
-  const [financialTouched, setFinancialTouched] = useState(false);
+
   const [reviewTotals, setReviewTotals] = useState({});
   const [financialDraft, setFinancialDraft] = useState(null);
   const [platformLookups, setPlatformLookups] = useState([]);
 
-  
+
   /* ------------------------------------------------------------
      LOAD PROJECT DETAILS
   ------------------------------------------------------------ */
@@ -112,22 +112,22 @@ const ProjectDetailsPage = () => {
         };
 
         normalizedMetadata.supplierType =
-        normalizedMetadata.supplierType ||
-        inferSupplierType(normalizedMetadata);
-        
+          normalizedMetadata.supplierType ||
+          inferSupplierType(normalizedMetadata);
+
         const normalizeLegacyFinancialForUI = (financial) => {
           if (!financial) return financial;
-        const legacyPlatforms =
-          financial.platforms?.length
-          ? financial.platforms
-          : [{
-            _id: "legacy-0",
-            platform_ref_id: "",
-            platformName: "Legacy Platform",
-            unit_cost: financial?.platforms?.[0]?.unit_cost || 1,
-            total_volume: financial?.platforms?.[0]?.total_volume || 0,
-            annualized_savings: financial?.platforms?.[0]?.annualized_savings || 0,
-          }];
+          const legacyPlatforms =
+            financial.platforms?.length
+              ? financial.platforms
+              : [{
+                _id: "legacy-0",
+                platform_ref_id: "",
+                platformName: "Legacy Platform",
+                unit_cost: financial?.platforms?.[0]?.unit_cost || 1,
+                total_volume: financial?.platforms?.[0]?.total_volume || 0,
+                annualized_savings: financial?.platforms?.[0]?.annualized_savings || 0,
+              }];
           return {
             ...financial,
             platforms: legacyPlatforms.map(p => ({
@@ -148,59 +148,59 @@ const ProjectDetailsPage = () => {
 
         const metadataWithLabels = { ...normalizedMetadata };
 
-// 🔑 ADD DISPLAY LABEL FIELDS FOR SCHEMA CONDITIONS
-Object.entries(normalizedMetadata).forEach(([k, v]) => {
-  if (labelMap[v]) {
-    metadataWithLabels[`${k}__label`] = labelMap[v];
-  }
-});
+        // 🔑 ADD DISPLAY LABEL FIELDS FOR SCHEMA CONDITIONS
+        Object.entries(normalizedMetadata).forEach(([k, v]) => {
+          if (labelMap[v]) {
+            metadataWithLabels[`${k}__label`] = labelMap[v];
+          }
+        });
 
-setFormData(prev => ({
-  ...prev,
-  ...metadataWithLabels,
+        setFormData(prev => ({
+          ...prev,
+          ...metadataWithLabels,
 
-  documents: prev.documents?.length
-    ? prev.documents
-    : mapDbDocumentsToUi(data.documents || []),
+          documents: prev.documents?.length
+            ? prev.documents
+            : mapDbDocumentsToUi(data.documents || []),
 
-  documentsDraft: prev.documentsDraft || {},
-}));
+          documentsDraft: prev.documentsDraft || {},
+        }));
 
       } catch (e) {
-          console.error("Failed to load project", e);
+        console.error("Failed to load project", e);
       }
     };
 
     loadProject();
-  }, [id]);
+  }, [id, labelMap]);
 
   useEffect(() => {
-  if (project && !financialDraft) {
-    setFinancialDraft(
-      project.financial
-        ? JSON.parse(JSON.stringify(project.financial))
-        : { platforms: [], fixedCostSavings: [] }
-    );
-  }
-}, [project, financialDraft]);
+    if (project && !financialDraft) {
+      setFinancialDraft(
+        project.financial
+          ? JSON.parse(JSON.stringify(project.financial))
+          : { platforms: [], fixedCostSavings: [] }
+      );
+    }
+  }, [project, financialDraft]);
 
 
   /* ------------------------------------------------------------
    🔑 CAPTURE BASELINE ONCE
 ------------------------------------------------------------ */
-useEffect(() => {
-  if (!baselineData && project) {
-    setBaselineData({
-  metadata: JSON.parse(JSON.stringify(project.metadata || {})),
-  financial: JSON.parse(
-    JSON.stringify(
-      project.financial || { platforms: [], fixedCostSavings: [] }
-    )
-  ),
-});
+  useEffect(() => {
+    if (!baselineData && project) {
+      setBaselineData({
+        metadata: JSON.parse(JSON.stringify(project.metadata || {})),
+        financial: JSON.parse(
+          JSON.stringify(
+            project.financial || { platforms: [], fixedCostSavings: [] }
+          )
+        ),
+      });
 
-  }
-}, [project, baselineData]);
+    }
+  }, [project, baselineData]);
 
 
   /* ------------------------------------------------------------
@@ -235,27 +235,27 @@ useEffect(() => {
         );
 
         const payload = res.data.dropdowns || {};
-       const dropdowns = buildDropdownData(
-  projectForm.dataModel.sections,
-  payload
-);
+        const dropdowns = buildDropdownData(
+          projectForm.dataModel.sections,
+          payload
+        );
 
-setDropdownData(dropdowns);
+        setDropdownData(dropdowns);
 
-// 🔑 BUILD LABEL MAP (ADD THIS)
-const labels = {};
-Object.values(dropdowns).forEach(list => {
-  (list || []).forEach(opt => {
-    if (opt._id) {
-      labels[String(opt._id)] =
-        opt.name ||
-        opt.label ||
-        opt[Object.keys(opt).find(k => k.endsWith("Name"))];
-    }
-  });
-});
+        // 🔑 BUILD LABEL MAP (ADD THIS)
+        const labels = {};
+        Object.values(dropdowns).forEach(list => {
+          (list || []).forEach(opt => {
+            if (opt._id) {
+              labels[String(opt._id)] =
+                opt.name ||
+                opt.label ||
+                opt[Object.keys(opt).find(k => k.endsWith("Name"))];
+            }
+          });
+        });
 
-setLabelMap(labels);
+        setLabelMap(labels);
 
       } catch (e) {
         console.error("Failed to load lookups", e);
@@ -269,28 +269,28 @@ setLabelMap(labels);
 
 
   useEffect(() => {
-  if (!labelMap || !Object.keys(labelMap).length) return;
+    if (!labelMap || !Object.keys(labelMap).length) return;
 
-  setFormData(prev => {
-    const updated = { ...prev };
-    Object.entries(prev).forEach(([k, v]) => {
-      if (labelMap[v]) {
-        updated[`${k}__label`] = labelMap[v];
-      }
+    setFormData(prev => {
+      const updated = { ...prev };
+      Object.entries(prev).forEach(([k, v]) => {
+        if (labelMap[v]) {
+          updated[`${k}__label`] = labelMap[v];
+        }
+      });
+      return updated;
     });
-    return updated;
-  });
-}, [labelMap]);
+  }, [labelMap]);
 
 
   if (loading || !project) return null;
 
   const sections = projectForm.dataModel.sections;
 
-  
 
 
-  
+
+
 
   const resolveValue = (field, value) => {
     if (value == null) return "";
@@ -300,10 +300,10 @@ setLabelMap(labels);
       const match = platformLookups.find(
         p => String(p.platformId) === String(value)
       );
-    return match?.platformName || value;
+      return match?.platformName || value;
     }
 
-  
+
     const options = dropdownData[field];
     if (!options) return String(value);
 
@@ -321,86 +321,86 @@ setLabelMap(labels);
 
   const changes = baselineData
     ? computeChanges(
-        baselineData,
-        { metadata: formData, financial: financialDraft },
-        resolveValue
-      )
-  : [];
+      baselineData,
+      { metadata: formData, financial: financialDraft },
+      resolveValue
+    )
+    : [];
   const canReviewChanges = changes.length > 0;
 
   const submitChangeRequest = async ({
-  reason,
-  comment,
-  changes,
-  totals,
-}) => {
-  try {
-    const payload = {
-      projectId: project.metadata.projectId,
-      projectDesc: formData.description,
-      functionGroup: formData.functionGroup,
-      reasonCode: reason,
-      commentCode: comment,
+    reason,
+    comment,
+    changes,
+    totals,
+  }) => {
+    try {
+      const payload = {
+        projectId: project.metadata.projectId,
+        projectDesc: formData.description,
+        functionGroup: formData.functionGroup,
+        reasonCode: reason,
+        commentCode: comment,
 
-      impact: {
-        anuunalImpact: totals.annualized || 0,
-        year1Impact:
-          totals.yearly?.[new Date().getFullYear()] || 0,
-        year2Impact:
-          totals.yearly?.[new Date().getFullYear() + 1] || 0,
-      },
+        impact: {
+          anuunalImpact: totals.annualized || 0,
+          year1Impact:
+            totals.yearly?.[new Date().getFullYear()] || 0,
+          year2Impact:
+            totals.yearly?.[new Date().getFullYear() + 1] || 0,
+        },
 
-      fields: changes.map((c) => ({
-        fieldname: c.field,
-        originalValue: c.oldValue,
-        requestedvalue: c.newValue,
-        anuunalImpact: totals.annualized || 0,
-        year1Impact:
-          totals.yearly?.[new Date().getFullYear()] || 0,
-        year2Impact:
-          totals.yearly?.[new Date().getFullYear() + 1] || 0,
-      })),
-    };
+        fields: changes.map((c) => ({
+          fieldname: c.field,
+          originalValue: c.oldValue,
+          requestedvalue: c.newValue,
+          anuunalImpact: totals.annualized || 0,
+          year1Impact:
+            totals.yearly?.[new Date().getFullYear()] || 0,
+          year2Impact:
+            totals.yearly?.[new Date().getFullYear() + 1] || 0,
+        })),
+      };
 
-    await axios.post(
-      `${API}/api/projects/change-requests`,
-      payload
-    );
+      await axios.post(
+        `${API}/api/projects/change-requests`,
+        payload
+      );
 
-    setShowReviewChanges(false);
-    setActiveTab(3); // Change Requests tab
-  } catch (err) {
-    console.error("Failed to submit change request", err);
-    alert("Failed to submit change request");
-  }
-};
+      setShowReviewChanges(false);
+      setActiveTab(3); // Change Requests tab
+    } catch (err) {
+      console.error("Failed to submit change request", err);
+      alert("Failed to submit change request");
+    }
+  };
 
 
   return (
     <Paper sx={{ p: 2 }}>
       {/* 🔷 PROJECT HEADER (VISIBLE ACROSS ALL TABS) */}
-<Box
-  sx={{
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    mb: 2,
-    pb: 1,
-    borderBottom: "1px solid #e0e0e0",
-  }}
->
-<Typography variant="h6" fontWeight={600}>
-    Project Components
-  </Typography>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 2,
+          pb: 1,
+          borderBottom: "1px solid #e0e0e0",
+        }}
+      >
+        <Typography variant="h6" fontWeight={600}>
+          Project Components
+        </Typography>
 
-  <Typography variant="h6" fontWeight={600}>
-    Project ID : {project?.metadata?.projectId || "-"}
-  </Typography>
+        <Typography variant="h6" fontWeight={600}>
+          Project ID : {project?.metadata?.projectId || "-"}
+        </Typography>
 
-  <Typography variant="h6" fontWeight={600}>
-    Project Number : {project?.metadata?.projectNumber || "-"}
-  </Typography>
-</Box>
+        <Typography variant="h6" fontWeight={600}>
+          Project Number : {project?.metadata?.projectNumber || "-"}
+        </Typography>
+      </Box>
 
       <Tabs
         value={activeTab}
@@ -409,11 +409,11 @@ setLabelMap(labels);
         }}
       >
         {sections
-  .filter(s => s.title !== "Review")
-  .map((s, i) => (
-    <Tab key={i} label={s.title} />
-  ))}
-          
+          .filter(s => s.title !== "Review")
+          .map((s, i) => (
+            <Tab key={i} label={s.title} />
+          ))}
+
         {/* Change Request tab*/}
         <Tab label="Change Requests" />
       </Tabs>
@@ -431,61 +431,61 @@ setLabelMap(labels);
             onSubmit={submitChangeRequest}
           />
         ) : (
-      <>
-        {/* METADATA */}
-        {activeTab === 0 && (
-          <ProjectMetadataView
-            sections={sections[0].groups}
-            formData={formData}
-            setFormData={setFormData}
-            dropdownData={dropdownData}
-            mode="details"
-          />
-        )}
-
-        {/* FINANCIAL */}
-        {activeTab === 1 && (
           <>
-            <ProjectFinancialView
-              financial={financialDraft}
-              metadata={formData}
-              onFinancialChange={setFinancialDraft}
-              onTotalsChange={setReviewTotals}
-              onPlatformLookups={setPlatformLookups}
-              lookups={{ platforms: dropdownData.platforms || [] }}
-              mode="details"
-            />
-          
-          {canReviewChanges && (
-            <Box mt={3} textAlign="right">
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={() => setShowReviewChanges(true)}
-              >
-                Review Changes
-              </Button>
-            </Box>
-          )}
+            {/* METADATA */}
+            {activeTab === 0 && (
+              <ProjectMetadataView
+                sections={sections[0].groups}
+                formData={formData}
+                setFormData={setFormData}
+                dropdownData={dropdownData}
+                mode="details"
+              />
+            )}
+
+            {/* FINANCIAL */}
+            {activeTab === 1 && (
+              <>
+                <ProjectFinancialView
+                  financial={financialDraft}
+                  metadata={formData}
+                  onFinancialChange={setFinancialDraft}
+                  onTotalsChange={setReviewTotals}
+                  onPlatformLookups={setPlatformLookups}
+                  lookups={{ platforms: dropdownData.platforms || [] }}
+                  mode="details"
+                />
+
+                {canReviewChanges && (
+                  <Box mt={3} textAlign="right">
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={() => setShowReviewChanges(true)}
+                    >
+                      Review Changes
+                    </Button>
+                  </Box>
+                )}
+              </>
+            )}
+
+            {/* DOCUMENTS */}
+            {activeTab === 2 && (
+              <ProjectDocumentsTab
+                formData={formData}
+                setFormData={setFormData}
+              />
+            )}
+            {/* CHANGE REQUESTS */}
+            {activeTab === 3 && (
+              <ChangeRequestsTab
+                projectId={project?.metadata?.projectId}
+              />
+            )}
           </>
         )}
-
-      {/* DOCUMENTS */}
-      {activeTab === 2 && (
-        <ProjectDocumentsTab
-          formData={formData}
-          setFormData={setFormData}
-        />
-      )}
-      {/* CHANGE REQUESTS */}
-      {activeTab === 3 && (
-        <ChangeRequestsTab
-          projectId={project?.metadata?.projectId}
-        />
-      )}
-    </>
-  )}
-</Box>
+      </Box>
 
     </Paper>
   );

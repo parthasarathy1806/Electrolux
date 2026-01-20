@@ -10,10 +10,9 @@ import {
   Select,
   MenuItem,
   Popover,
-  Button,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import AddIcon from "@mui/icons-material/Add";
+// import AddIcon from "@mui/icons-material/Add";
 import axios from "axios";
 import dayjs from "dayjs";
 
@@ -28,7 +27,7 @@ import {
 
 const API = process.env.REACT_APP_API_BASE;
 
-const ProjectFinancialView = ({ financial, metadata, onFinancialChange, onTotalsChange, onPlatformLookups,mode = "details" }) => {
+const ProjectFinancialView = ({ financial, metadata, onFinancialChange, onTotalsChange, onPlatformLookups, mode = "details" }) => {
   const startDate = metadata?.startDate;
   const functionalGroup = metadata?.functionGroup;
   const isLegacy = metadata?.source === "legacy";
@@ -69,10 +68,10 @@ const ProjectFinancialView = ({ financial, metadata, onFinancialChange, onTotals
 
       setFixedCost(filtered);
     } else {
-    // 🟢 NEW PROJECTS – untouched
+      // 🟢 NEW PROJECTS – untouched
       setFixedCost(financial.fixedCostSavings);
     }
-  }, [financial, startDate]);
+  }, [financial, startDate, isLegacy]);
 
 
   /* ---------------- LOAD PLATFORM OPTIONS ---------------- */
@@ -89,73 +88,76 @@ const ProjectFinancialView = ({ financial, metadata, onFinancialChange, onTotals
         onPlatformLookups?.(platforms); // ✅ NEW
       })
       .catch(() => setPlatformOptions([]));
-  }, [functionalGroup]);
+  }, [functionalGroup, onPlatformLookups]);
+
+  const platformRefIds = platforms.map(p => p.platform_ref_id).join(",");
 
   useEffect(() => {
-  async function loadPlatformVolumes() {
-    const updated = await Promise.all(
-      platforms.map(async (p) => {
-        if (!p.platform_ref_id) return p;
+    async function loadPlatformVolumes() {
+      const updated = await Promise.all(
+        platforms.map(async (p) => {
+          if (!p.platform_ref_id) return p;
 
-        try {
-          const res = await axios.get(
-            `${API}/api/financial/platform-monthly`,
-            { params: { platformId: p.platform_ref_id } }
-          );
+          try {
+            const res = await axios.get(
+              `${API}/api/financial/platform-monthly`,
+              { params: { platformId: p.platform_ref_id } }
+            );
 
-          const monthly = res.data.months || {};
-          const totalVolume = Object.values(monthly).reduce(
-            (s, v) => s + (Number(v) || 0),
-            0
-          );
+            const monthly = res.data.months || {};
+            const totalVolume = Object.values(monthly).reduce(
+              (s, v) => s + (Number(v) || 0),
+              0
+            );
 
-          return {
-            ...p,
-            monthlyUnits: monthly,
-            total_volume: totalVolume,
-          };
-        } catch (e) {
-          console.error("Volume load failed", e);
-          return p;
-        }
-      })
-    );
+            return {
+              ...p,
+              monthlyUnits: monthly,
+              total_volume: totalVolume,
+            };
+          } catch (e) {
+            console.error("Volume load failed", e);
+            return p;
+          }
+        })
+      );
 
-    setPlatforms(updated);
-  }
+      setPlatforms(updated);
+    }
 
-  loadPlatformVolumes();
-}, [platforms.map(p => p.platform_ref_id).join(",")]);
+    loadPlatformVolumes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [platformRefIds]);
 
   /* ---------------- PLATFORM CRUD (UNCHANGED) ---------------- */
   const addPlatform = () => {
-  const tempId = `temp-${Date.now()}`;
+    const tempId = `temp-${Date.now()}`;
 
-  setPlatforms(prev => [
-    ...prev,
-    {
-      _id: tempId,
-      platform_ref_id: "",
-      unit_cost: 0,
-      total_volume: 0,
-      annualized_savings: 0,
-    }
-  ]);
-
-  onFinancialChange?.(prev => ({
-    ...prev,
-    platforms: [
-      ...(prev.platforms || []),
+    setPlatforms(prev => [
+      ...prev,
       {
         _id: tempId,
         platform_ref_id: "",
         unit_cost: 0,
         total_volume: 0,
         annualized_savings: 0,
-      },
-    ],
-  }));
-};
+      }
+    ]);
+
+    onFinancialChange?.(prev => ({
+      ...prev,
+      platforms: [
+        ...(prev.platforms || []),
+        {
+          _id: tempId,
+          platform_ref_id: "",
+          unit_cost: 0,
+          total_volume: 0,
+          annualized_savings: 0,
+        },
+      ],
+    }));
+  };
 
 
   const updatePlatform = async (row, updates) => {
@@ -189,10 +191,10 @@ const ProjectFinancialView = ({ financial, metadata, onFinancialChange, onTotals
     }
 
     try {
-      
+
       setPlatforms((prev) => prev.filter((p) => p._id !== id));
       onFinancialChange?.(prev => ({
-      ...prev,
+        ...prev,
         platforms: prev.platforms.filter(p => p._id !== id),
       }));
     } catch (e) {
@@ -203,7 +205,7 @@ const ProjectFinancialView = ({ financial, metadata, onFinancialChange, onTotals
 
   /* ---------------- FIXED COST ---------------- */
   const openEditor = (e, month, row) => {
-    setEditingMonth({ month, row });
+    setEditingMonth({ month, id: row._id });
     setAnchorEl(e.currentTarget);
   };
 
@@ -212,27 +214,48 @@ const ProjectFinancialView = ({ financial, metadata, onFinancialChange, onTotals
     setAnchorEl(null);
   };
 
-  const updateFixedCost = async (row, value) => {
+
+  const handleLocalCostChange = (id, value) => {
     setFixedCost((prev) =>
       prev.map((f) =>
-        f._id === row._id ? { ...f, savings: value } : f
+        f._id === id ? { ...f, savings: value } : f
       )
     );
+  };
+
+  const saveFixedCost = async () => {
+    if (!editingMonth) return;
+
+    const rowId = editingMonth.id;
+    const row = fixedCost.find(f => f._id === rowId);
+    if (!row) return;
+
+    const numericValue = Number(row.savings) || 0;
+
+    // Flush to parent
     onFinancialChange?.(prev => ({
       ...prev,
       fixedCostSavings: prev.fixedCostSavings.map(f =>
-        f._id === row._id ? { ...f, savings: value } : f
+        f._id === rowId ? { ...f, savings: numericValue } : f
       ),
     }));
 
     if (mode !== "details") {
-      await axios.put(
-        `${API}/api/mongo/data/project_fixed_cost_savings/${row._id}`,
-        { savings: value }
-      );
+      try {
+        await axios.put(
+          `${API}/api/mongo/data/project_fixed_cost_savings/${rowId}`,
+          { savings: numericValue }
+        );
+      } catch (e) {
+        console.error("Failed to save fixed cost", e);
+      }
     }
 
+    // Close editor
+    setEditingMonth(null);
+    setAnchorEl(null);
   };
+
 
   /* ---------------- 🔑 COMPUTATIONS (CREATE-PAGE LOGIC) ---------------- */
   const computed = useMemo(() => {
@@ -292,7 +315,7 @@ const ProjectFinancialView = ({ financial, metadata, onFinancialChange, onTotals
 
           monthlySavings[ym] = savings;
           pAnnualized += savings;
-      pVolume += units;
+          pVolume += units;
 
           yearlyMap[ym] = (yearlyMap[ym] || 0) + savings;
         });
@@ -308,6 +331,17 @@ const ProjectFinancialView = ({ financial, metadata, onFinancialChange, onTotals
       };
     });
 
+    // 🔑 ADD FIXED COST TO TOTALS
+    fixedCost.forEach((f) => {
+      const val = Number(f.savings) || 0;
+      annualized += val;
+
+      if (f.month) {
+        const ym = dayjs(f.month).format("YYYY-MM");
+        yearlyMap[ym] = (yearlyMap[ym] || 0) + val;
+      }
+    });
+
 
     return {
       platforms: enrichedPlatforms,
@@ -319,8 +353,8 @@ const ProjectFinancialView = ({ financial, metadata, onFinancialChange, onTotals
         yearly: sumByYear(yearlyMap),
       },
     };
-    
-  }, [platforms, startDate]);
+
+  }, [platforms, fixedCost, startDate, isLegacy]);
   useEffect(() => {
     onTotalsChange?.(computed.totals);
   }, [computed.totals, onTotalsChange]);
@@ -505,23 +539,33 @@ const ProjectFinancialView = ({ financial, metadata, onFinancialChange, onTotals
         anchorEl={anchorEl}
         onClose={closeEditor}
       >
-        {editingMonth && (
-          <Box p={2} width={160}>
-            <TextField
-              autoFocus
-              fullWidth
-              label="Amount ($)"
-              value={editingMonth.row.savings}
-              onChange={(e) =>
-                updateFixedCost(
-                  editingMonth.row,
-                  Number(e.target.value.replace(/[^0-9.]/g, ""))
-                )
-              }
-              onBlur={closeEditor}
-            />
-          </Box>
-        )}
+        {editingMonth && (() => {
+          const row = fixedCost.find(f => f._id === editingMonth.id);
+          if (!row) return null;
+
+          return (
+            <Box p={2} width={160}>
+              <TextField
+                autoFocus
+                fullWidth
+                label="Amount ($)"
+                value={row.savings}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (/^\d*\.?\d{0,2}$/.test(val)) {
+                    handleLocalCostChange(row._id, val);
+                  }
+                }}
+                onBlur={saveFixedCost}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.target.blur(); // Triggers saveFixedCost
+                  }
+                }}
+              />
+            </Box>
+          );
+        })()}
       </Popover>
     </Box>
   );

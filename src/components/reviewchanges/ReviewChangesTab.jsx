@@ -35,43 +35,50 @@ const formatLabel = (key) =>
     .replace(/^./, (s) => s.toUpperCase());
 
 const ReviewChangesTab = ({ formData, changes, totals, onBack, onSubmit, }) => {
-  
-const [reason, setReason] = React.useState("");
-const [comment, setComment] = React.useState("");
-const [submitting, setSubmitting] = React.useState(false);
-const handleSubmit = async () => {
-  if (!reason) {
-    alert("Please select a reason before submitting.");
-    return;
-  }
 
-  try {
-    setSubmitting(true);
+  const [reason, setReason] = React.useState("");
+  const [comment, setComment] = React.useState("");
+  const [submitting, setSubmitting] = React.useState(false);
+  const handleSubmit = async () => {
+    if (!reason) {
+      alert("Please select a reason before submitting.");
+      return;
+    }
 
-    await axios.post(
-      `${process.env.REACT_APP_API_BASE}/api/projects/change-requests`,
-      {
-        projectId: formData.projectId,
-        projectDesc: formData.description,
-        reasonCode: reason,
-        commentCode: comment,
-        totals,
-        changes,
-      }
-    );
+    try {
+      setSubmitting(true);
 
-    alert("Change request submitted successfully.");
+      const currentYear = new Date().getFullYear();
+      const totalsPayload = {
+        ...totals,
+        year1: totals.yearly?.[currentYear] || 0,
+        year2: totals.yearly?.[currentYear + 1] || 0,
+      };
 
-    // ✅ Go back to Project Details page
-    window.history.back();
+      await axios.post(
+        `${process.env.REACT_APP_API_BASE}/api/projects/change-requests`,
+        {
+          projectId: formData.projectId,
+          projectDesc: formData.description,
+          reasonCode: reason,
+          commentCode: comment,
+          totals: totalsPayload,
+          changes,
+        }
+      );
 
-  } catch (err) {
-    console.error("Submit failed:", err);
-    alert("Failed to submit change request. Please try again.");
-  } finally {
-    setSubmitting(false);
-  }
-};
+      alert("Change request submitted successfully.");
+
+      // ✅ Go back to Project Details page
+      window.history.back();
+
+    } catch (err) {
+      console.error("Submit failed:", err);
+      alert("Failed to submit change request. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <Box p={2}>
@@ -182,8 +189,8 @@ const handleSubmit = async () => {
               minRows={3}
               fullWidth
               margin="dense"
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
 
             />
           </Box>
@@ -207,8 +214,8 @@ const handleSubmit = async () => {
 
           {/* Accept */}
           <Box textAlign="right">
-            <Button variant="contained" 
-              color="success" 
+            <Button variant="contained"
+              color="success"
               disabled={submitting}
               onClick={handleSubmit}
 

@@ -7,16 +7,16 @@ import { useParams } from "react-router-dom";
 
 const LookupPage = () => {
 
-  const {key} = useParams()
+  const { key } = useParams()
   const lookupKey = key.toLowerCase();
   const lookupConfig = LOOKUPS[lookupKey];
 
   if (!lookupConfig) return <p>Invalid lookup key: {lookupKey}</p>;
-  
 
-  // const isEmbed = window.location.search.includes("embed=true");
-  // console.log("isEmbed:", isEmbed);
-  // console.log("dashboardId:", lookupConfig.dashboardId);
+
+  const isEmbed = window.location.search.includes("embed=true");
+  console.log("isEmbed:", isEmbed);
+  console.log("dashboardId:", lookupConfig.dashboardId);
 
   // EMBED MODE → Render Superset dashboard instead of table
   // if (isEmbed && lookupConfig.dashboardId) {

@@ -1,9 +1,9 @@
 // src/App.js
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { LOOKUPS } from "./config/lookups";
+// import { LOOKUPS } from "./config/lookups";
 import Sidebar from "./components/Sidebar";
-import LookupTable from "./components/LookupTable";
+// import LookupTable from "./components/LookupTable";
 import ProjectsPage from "./components/ProjectsPage";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -14,18 +14,18 @@ import ProjectDetailsPage from "./components/projectDetails/ProjectDetailsPage";
 
 
 function App() {
-  
+
   const isEmbed = window.location.search.includes("embed=true");
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Router>
-        
-        
+
+
         {/* TOP MENU BAR */}
         {!isEmbed && <TopMenuBar />}
 
         <div style={{ display: "flex" }}>
-          
+
           {/* SIDEBAR */}
           {!isEmbed && <Sidebar />}
 
@@ -55,12 +55,12 @@ function App() {
                   />
                 ))} */}
 
-                <Route 
-                    path={`/lookups/:key`}  
-                    element={<LookupPage/>}
-                  />
+              <Route
+                path={`/lookups/:key`}
+                element={<LookupPage />}
+              />
 
-                  <Route path="/projects/:id" element={<ProjectDetailsPage />} />
+              <Route path="/projects/:id" element={<ProjectDetailsPage />} />
 
               <Route path="*" element={<h3>404 - Page Not Found</h3>} />
             </Routes>
